@@ -1,4 +1,5 @@
 from pydb.parser.ast import InsertStatement, SelectStatement
+from pydb.storage.schema import Schema
 from pydb.storage.table import Table
 
 
@@ -6,11 +7,11 @@ class Database:
     def __init__(self):
         self.tables: dict[str, Table] = {}
 
-    def create_table(self, name: str) -> None:
+    def create_table(self, name: str, schema: Schema) -> None:
         if name in self.tables:
             raise ValueError(f"Table already exists: {name}")
 
-        self.tables[name] = Table()
+        self.tables[name] = Table(schema)
 
     def execute(self, statement):
         if isinstance(statement, InsertStatement):
@@ -48,25 +49,14 @@ class Database:
 
         condition = statement.where
 
-        # Temporary assumption:
-        # column names map to fixed positions.
-        column_positions = {
-            "id": 0,
-            "name": 1,
-            "age": 2,
-        }
-
-        if condition.column not in column_positions:
-            raise ValueError(
-                f"Unknown column: {condition.column}"
-            )
-
-        index = column_positions[condition.column]
-
         if condition.operator != "=":
             raise ValueError(
                 f"Unsupported operator: {condition.operator}"
             )
+
+        index = table.schema.column_index(
+            condition.column
+        )
 
         return [
             row

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from .record import RecordSerializer
+from .schema import Schema
 from .slotted_page import SlottedPage
 
 
@@ -11,7 +12,8 @@ class RowID:
 
 
 class Table:
-    def __init__(self):
+    def __init__(self, schema: Schema):
+        self.schema = schema
         self.pages: list[SlottedPage] = []
 
     def _create_page(self) -> SlottedPage:
@@ -20,15 +22,19 @@ class Table:
         return page
 
     def insert(self, values: tuple) -> RowID:
+        self.schema.validate(values)
+
         record = RecordSerializer.serialize(values)
 
         for page in self.pages:
             try:
                 slot_id = page.insert(record)
+
                 return RowID(
                     page_id=page.page.page_id,
                     slot_id=slot_id,
                 )
+
             except ValueError:
                 continue
 
@@ -45,6 +51,7 @@ class Table:
             raise IndexError("Invalid page id")
 
         page = self.pages[row_id.page_id]
+
         record = page.read(row_id.slot_id)
 
         return RecordSerializer.deserialize(record)
