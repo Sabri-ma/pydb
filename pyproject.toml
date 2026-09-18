@@ -1,0 +1,12 @@
+[project]
+name = "pydb-engine"
+version = "0.1.0"
+description = "A lightweight relational database engine built from scratch in Python."
+requires-python = ">=3.12"
+
+[project.scripts]
+pydb = "pydb.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
