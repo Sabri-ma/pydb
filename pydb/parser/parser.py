@@ -1,5 +1,11 @@
-from .ast import Condition, InsertStatement, SelectStatement
-from .tokens import Token, TokenType
+from pydb.parser.ast import (
+    ColumnDefinition,
+    Condition,
+    CreateTableStatement,
+    InsertStatement,
+    SelectStatement,
+)
+from pydb.parser.tokens import Token, TokenType
 
 
 class Parser:
@@ -30,6 +36,9 @@ class Parser:
 
         if self.current.value == "INSERT":
             return self.parse_insert()
+
+        if self.current.value == "CREATE":
+            return self.parse_create_table()
 
         raise ValueError(
             f"Unsupported statement: {self.current.value}"
@@ -77,8 +86,10 @@ class Parser:
 
         if value_token.type == TokenType.NUMBER:
             value = int(value_token.value)
+
         elif value_token.type == TokenType.STRING:
             value = value_token.value
+
         else:
             raise ValueError("Invalid WHERE value")
 
@@ -124,4 +135,43 @@ class Parser:
         return InsertStatement(
             table=table,
             values=values,
+        )
+
+    def parse_create_table(self) -> CreateTableStatement:
+        self.expect("CREATE")
+        self.expect("TABLE")
+
+        table = self.advance().value
+
+        self.expect("(")
+
+        columns = []
+
+        while self.current.value != ")":
+            column_name = self.advance().value
+            column_type = self.advance().value.upper()
+
+            if column_type not in {"INT", "TEXT"}:
+                raise ValueError(
+                    f"Unsupported column type: {column_type}"
+                )
+
+            columns.append(
+                ColumnDefinition(
+                    name=column_name,
+                    type=column_type,
+                )
+            )
+
+            if self.current.value == ",":
+                self.advance()
+
+        self.expect(")")
+
+        if self.current.value == ";":
+            self.advance()
+
+        return CreateTableStatement(
+            table=table,
+            columns=columns,
         )

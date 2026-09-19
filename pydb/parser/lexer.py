@@ -12,6 +12,8 @@ KEYWORDS = {
     "TABLE",
     "UPDATE",
     "DELETE",
+    "INT",
+    "TEXT",
 }
 
 

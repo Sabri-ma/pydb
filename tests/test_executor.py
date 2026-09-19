@@ -118,3 +118,19 @@ def users_schema():
             Column("age", ColumnType.INT),
         ]
     )
+def test_create_table_from_sql():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    assert "users" in db.tables

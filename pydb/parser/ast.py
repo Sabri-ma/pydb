@@ -19,3 +19,14 @@ class SelectStatement:
 class InsertStatement:
     table: str
     values: list[int | str]
+
+@dataclass(frozen=True)
+class ColumnDefinition:
+    name: str
+    type: str
+
+
+@dataclass(frozen=True)
+class CreateTableStatement:
+    table: str
+    columns: list[ColumnDefinition]

@@ -5,7 +5,7 @@ from pydb.parser.ast import (
 )
 from pydb.parser.lexer import Lexer
 from pydb.parser.parser import Parser
-
+from pydb.parser.ast import ColumnDefinition, CreateTableStatement
 
 def parse(sql: str):
     tokens = Lexer(sql).tokenize()
@@ -72,4 +72,24 @@ def test_insert():
     assert statement == InsertStatement(
         table="users",
         values=[1, "Massine", 24],
+    )
+
+def test_create_table():
+    statement = parse(
+        """
+        CREATE TABLE users (
+            id INT,
+            name TEXT,
+            age INT
+        );
+        """
+    )
+
+    assert statement == CreateTableStatement(
+        table="users",
+        columns=[
+            ColumnDefinition("id", "INT"),
+            ColumnDefinition("name", "TEXT"),
+            ColumnDefinition("age", "INT"),
+        ],
     )
