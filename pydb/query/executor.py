@@ -85,6 +85,7 @@ class Database:
 
         rows = list(table.scan())
 
+        # WHERE filtering
         if statement.where is not None:
             condition = statement.where
 
@@ -103,4 +104,20 @@ class Database:
                 if row[index] == condition.value
             ]
 
-        return rows
+        # SELECT *
+        if statement.columns == ["*"]:
+            return rows
+
+        # SELECT specific columns
+        column_indexes = [
+            table.schema.column_index(column)
+            for column in statement.columns
+        ]
+
+        return [
+            tuple(
+                row[index]
+                for index in column_indexes
+            )
+            for row in rows
+        ]
