@@ -1,8 +1,11 @@
+from pathlib import Path
+
 from pydb.parser.ast import (
     CreateTableStatement,
     InsertStatement,
     SelectStatement,
 )
+from pydb.storage.catalog import Catalog
 from pydb.storage.schema import (
     Column,
     ColumnType,
@@ -12,8 +15,52 @@ from pydb.storage.table import Table
 
 
 class Database:
-    def __init__(self):
+    def __init__(
+        self,
+        data_dir: str | None = None,
+    ):
         self.tables: dict[str, Table] = {}
+
+        self.data_dir: Path | None = None
+        self.catalog: Catalog | None = None
+
+        if data_dir is not None:
+            self.data_dir = Path(data_dir)
+            self.data_dir.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            catalog_path = (
+                self.data_dir
+                / "catalog.json"
+            )
+
+            self.catalog = Catalog(
+                str(catalog_path)
+            )
+
+            self._load_tables()
+
+    def _load_tables(self) -> None:
+        if (
+            self.catalog is None
+            or self.data_dir is None
+        ):
+            return
+
+        schemas = self.catalog.load()
+
+        for table_name, schema in schemas.items():
+            table_file = (
+                self.data_dir
+                / f"{table_name}.pydb"
+            )
+
+            self.tables[table_name] = Table(
+                schema,
+                str(table_file),
+            )
 
     def create_table(
         self,
@@ -25,7 +72,27 @@ class Database:
                 f"Table already exists: {name}"
             )
 
-        self.tables[name] = Table(schema)
+        if self.data_dir is None:
+            self.tables[name] = Table(
+                schema
+            )
+            return
+
+        table_file = (
+            self.data_dir
+            / f"{name}.pydb"
+        )
+
+        self.tables[name] = Table(
+            schema,
+            str(table_file),
+        )
+
+        if self.catalog is not None:
+            self.catalog.save_table(
+                name,
+                schema,
+            )
 
     def execute(self, statement):
         if isinstance(

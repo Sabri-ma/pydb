@@ -400,3 +400,166 @@ def test_where_not_equal():
     assert rows == [
         ("Alice",)
     ]
+
+
+def test_database_persists_across_restart(tmp_path):
+    data_dir = tmp_path / "database"
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    reopened_db = Database(
+        str(data_dir)
+    )
+
+    rows = reopened_db.execute(
+        parse(
+            "SELECT * FROM users;"
+        )
+    )
+
+    assert rows == [
+        (1, "Massine", 24)
+    ]
+
+
+def test_database_restores_schema(tmp_path):
+    data_dir = tmp_path / "database"
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    reopened_db = Database(
+        str(data_dir)
+    )
+
+    table = reopened_db.tables["users"]
+
+    assert table.schema.column_index("id") == 0
+    assert table.schema.column_index("name") == 1
+    assert table.schema.column_index("age") == 2
+
+
+def test_database_persists_multiple_rows(tmp_path):
+    data_dir = tmp_path / "database"
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    reopened_db = Database(
+        str(data_dir)
+    )
+
+    rows = reopened_db.execute(
+        parse(
+            "SELECT * FROM users;"
+        )
+    )
+
+    assert rows == [
+        (1, "Massine", 24),
+        (2, "Alice", 30),
+    ]
+
+
+def test_persistent_database_where_query(tmp_path):
+    data_dir = tmp_path / "database"
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    reopened_db = Database(
+        str(data_dir)
+    )
+
+    rows = reopened_db.execute(
+        parse(
+            "SELECT name FROM users WHERE age > 24;"
+        )
+    )
+
+    assert rows == [
+        ("Alice",)
+    ]
