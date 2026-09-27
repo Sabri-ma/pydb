@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+from pydb.index.btree import BPlusTree
+
 from .disk import DiskManager
 from .record import RecordSerializer
-from .schema import Schema
+from .schema import ColumnType, Schema
 from .slotted_page import SlottedPage
 
 
@@ -23,11 +25,10 @@ class Table:
 
         self.disk: DiskManager | None = None
 
-        if file_path is not None:
-            self.disk = DiskManager(
-                file_path
-            )
+        self.indexes: dict[str, BPlusTree] = {}
 
+        if file_path is not None:
+            self.disk = DiskManager(file_path)
             self._load_pages()
 
     def _load_pages(self) -> None:
@@ -71,6 +72,78 @@ class Table:
             page.page
         )
 
+    def create_index(
+        self,
+        column_name: str,
+    ) -> None:
+        column_index = (
+            self.schema.column_index(
+                column_name
+            )
+        )
+
+        column = self.schema.columns[
+            column_index
+        ]
+
+        if column.type != ColumnType.INT:
+            raise TypeError(
+                "B+ Tree indexes currently "
+                "support INT columns only"
+            )
+
+        if column_name in self.indexes:
+            raise ValueError(
+                f"Index already exists "
+                f"for column: {column_name}"
+            )
+
+        tree = BPlusTree()
+
+        for row_id, row in (
+            self.scan_with_row_ids()
+        ):
+            key = row[column_index]
+
+            tree.insert(
+                key,
+                row_id,
+            )
+
+        self.indexes[column_name] = tree
+
+    def has_index(
+        self,
+        column_name: str,
+    ) -> bool:
+        return column_name in self.indexes
+
+    def lookup_by_index(
+        self,
+        column_name: str,
+        value: int,
+    ) -> tuple | None:
+        if column_name not in self.indexes:
+            raise ValueError(
+                f"No index exists for column: "
+                f"{column_name}"
+            )
+
+        tree = self.indexes[
+            column_name
+        ]
+
+        row_id = tree.search(
+            value
+        )
+
+        if row_id is None:
+            return None
+
+        return self.get(
+            row_id
+        )
+
     def insert(
         self,
         values: tuple,
@@ -85,6 +158,8 @@ class Table:
             )
         )
 
+        row_id = None
+
         for page in self.pages:
             try:
                 slot_id = page.insert(
@@ -95,28 +170,62 @@ class Table:
                     page
                 )
 
-                return RowID(
+                row_id = RowID(
                     page_id=page.page.page_id,
                     slot_id=slot_id,
                 )
 
+                break
+
             except ValueError:
                 continue
 
-        page = self._create_page()
+        if row_id is None:
+            page = self._create_page()
 
-        slot_id = page.insert(
-            record
+            slot_id = page.insert(
+                record
+            )
+
+            self._persist_page(
+                page
+            )
+
+            row_id = RowID(
+                page_id=page.page.page_id,
+                slot_id=slot_id,
+            )
+
+        self._update_indexes(
+            values,
+            row_id,
         )
 
-        self._persist_page(
-            page
-        )
+        return row_id
 
-        return RowID(
-            page_id=page.page.page_id,
-            slot_id=slot_id,
-        )
+    def _update_indexes(
+        self,
+        values: tuple,
+        row_id: RowID,
+    ) -> None:
+        for (
+            column_name,
+            tree,
+        ) in self.indexes.items():
+            column_index = (
+                self.schema.column_index(
+                    column_name
+                )
+            )
+
+            key = values[
+                column_index
+            ]
+
+            tree.insert(
+                key,
+                row_id,
+            )
 
     def get(
         self,
@@ -146,6 +255,12 @@ class Table:
         )
 
     def scan(self):
+        for _, row in (
+            self.scan_with_row_ids()
+        ):
+            yield row
+
+    def scan_with_row_ids(self):
         for page in self.pages:
             for slot_id in range(
                 page.slot_count
@@ -154,8 +269,15 @@ class Table:
                     slot_id
                 )
 
-                yield (
+                row = (
                     RecordSerializer.deserialize(
                         record
                     )
                 )
+
+                row_id = RowID(
+                    page_id=page.page.page_id,
+                    slot_id=slot_id,
+                )
+
+                yield row_id, row

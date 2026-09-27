@@ -25,7 +25,10 @@ class Database:
         self.catalog: Catalog | None = None
 
         if data_dir is not None:
-            self.data_dir = Path(data_dir)
+            self.data_dir = Path(
+                data_dir
+            )
+
             self.data_dir.mkdir(
                 parents=True,
                 exist_ok=True,
@@ -51,13 +54,18 @@ class Database:
 
         schemas = self.catalog.load()
 
-        for table_name, schema in schemas.items():
+        for (
+            table_name,
+            schema,
+        ) in schemas.items():
             table_file = (
                 self.data_dir
                 / f"{table_name}.pydb"
             )
 
-            self.tables[table_name] = Table(
+            self.tables[
+                table_name
+            ] = Table(
                 schema,
                 str(table_file),
             )
@@ -73,7 +81,9 @@ class Database:
             )
 
         if self.data_dir is None:
-            self.tables[name] = Table(
+            self.tables[
+                name
+            ] = Table(
                 schema
             )
             return
@@ -83,7 +93,9 @@ class Database:
             / f"{name}.pydb"
         )
 
-        self.tables[name] = Table(
+        self.tables[
+            name
+        ] = Table(
             schema,
             str(table_file),
         )
@@ -94,29 +106,52 @@ class Database:
                 schema,
             )
 
+    def create_index(
+        self,
+        table_name: str,
+        column_name: str,
+    ) -> None:
+        if table_name not in self.tables:
+            raise ValueError(
+                f"Table does not exist: "
+                f"{table_name}"
+            )
+
+        self.tables[
+            table_name
+        ].create_index(
+            column_name
+        )
+
     def execute(self, statement):
         if isinstance(
             statement,
             CreateTableStatement,
         ):
-            return self._execute_create_table(
-                statement
+            return (
+                self._execute_create_table(
+                    statement
+                )
             )
 
         if isinstance(
             statement,
             InsertStatement,
         ):
-            return self._execute_insert(
-                statement
+            return (
+                self._execute_insert(
+                    statement
+                )
             )
 
         if isinstance(
             statement,
             SelectStatement,
         ):
-            return self._execute_select(
-                statement
+            return (
+                self._execute_select(
+                    statement
+                )
             )
 
         raise ValueError(
@@ -132,10 +167,14 @@ class Database:
 
         for column in statement.columns:
             if column.type == "INT":
-                column_type = ColumnType.INT
+                column_type = (
+                    ColumnType.INT
+                )
 
             elif column.type == "TEXT":
-                column_type = ColumnType.TEXT
+                column_type = (
+                    ColumnType.TEXT
+                )
 
             else:
                 raise ValueError(
@@ -150,7 +189,9 @@ class Database:
                 )
             )
 
-        schema = Schema(columns)
+        schema = Schema(
+            columns
+        )
 
         self.create_table(
             statement.table,
@@ -172,7 +213,9 @@ class Database:
         ]
 
         return table.insert(
-            tuple(statement.values)
+            tuple(
+                statement.values
+            )
         )
 
     def _execute_select(
@@ -189,73 +232,39 @@ class Database:
             statement.table
         ]
 
-        rows = list(
-            table.scan()
-        )
+        rows = None
 
-        if statement.where is not None:
-            condition = statement.where
-
-            index = (
-                table.schema.column_index(
-                    condition.column
-                )
+        if (
+            statement.where is not None
+            and
+            statement.where.operator == "="
+            and
+            table.has_index(
+                statement.where.column
+            )
+        ):
+            row = table.lookup_by_index(
+                statement.where.column,
+                statement.where.value,
             )
 
-            operator = condition.operator
-
-            if operator == "=":
-                rows = [
-                    row
-                    for row in rows
-                    if row[index]
-                    == condition.value
-                ]
-
-            elif operator == "!=":
-                rows = [
-                    row
-                    for row in rows
-                    if row[index]
-                    != condition.value
-                ]
-
-            elif operator == ">":
-                rows = [
-                    row
-                    for row in rows
-                    if row[index]
-                    > condition.value
-                ]
-
-            elif operator == "<":
-                rows = [
-                    row
-                    for row in rows
-                    if row[index]
-                    < condition.value
-                ]
-
-            elif operator == ">=":
-                rows = [
-                    row
-                    for row in rows
-                    if row[index]
-                    >= condition.value
-                ]
-
-            elif operator == "<=":
-                rows = [
-                    row
-                    for row in rows
-                    if row[index]
-                    <= condition.value
-                ]
-
+            if row is None:
+                rows = []
             else:
-                raise ValueError(
-                    f"Unsupported operator: "
-                    f"{operator}"
+                rows = [row]
+
+        else:
+            rows = list(
+                table.scan()
+            )
+
+            if statement.where is not None:
+                rows = (
+                    self._filter_rows(
+                        table,
+                        rows,
+                        statement.where,
+                    )
                 )
 
         if statement.columns == ["*"]:
@@ -277,3 +286,70 @@ class Database:
             )
             for row in rows
         ]
+
+    def _filter_rows(
+        self,
+        table: Table,
+        rows: list[tuple],
+        condition,
+    ) -> list[tuple]:
+        index = (
+            table.schema.column_index(
+                condition.column
+            )
+        )
+
+        operator = condition.operator
+
+        if operator == "=":
+            return [
+                row
+                for row in rows
+                if row[index]
+                == condition.value
+            ]
+
+        if operator == "!=":
+            return [
+                row
+                for row in rows
+                if row[index]
+                != condition.value
+            ]
+
+        if operator == ">":
+            return [
+                row
+                for row in rows
+                if row[index]
+                > condition.value
+            ]
+
+        if operator == "<":
+            return [
+                row
+                for row in rows
+                if row[index]
+                < condition.value
+            ]
+
+        if operator == ">=":
+            return [
+                row
+                for row in rows
+                if row[index]
+                >= condition.value
+            ]
+
+        if operator == "<=":
+            return [
+                row
+                for row in rows
+                if row[index]
+                <= condition.value
+            ]
+
+        raise ValueError(
+            f"Unsupported operator: "
+            f"{operator}"
+        )

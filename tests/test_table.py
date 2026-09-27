@@ -306,3 +306,95 @@ def test_persistence_multiple_pages(
     assert len(
         reopened_table.pages
     ) == 2
+
+
+def test_create_index_and_lookup():
+    table = Table(
+        users_schema()
+    )
+
+    table.insert(
+        (1, "Massine")
+    )
+
+    table.insert(
+        (2, "Alice")
+    )
+
+    table.insert(
+        (3, "Bob")
+    )
+
+    table.create_index(
+        "id"
+    )
+
+    row = table.lookup_by_index(
+        "id",
+        2,
+    )
+
+    assert row == (
+        2,
+        "Alice",
+    )
+
+
+def test_index_missing_key():
+    table = Table(
+        users_schema()
+    )
+
+    table.insert(
+        (1, "Massine")
+    )
+
+    table.create_index(
+        "id"
+    )
+
+    row = table.lookup_by_index(
+        "id",
+        99,
+    )
+
+    assert row is None
+
+
+def test_index_updates_after_insert():
+    table = Table(
+        users_schema()
+    )
+
+    table.create_index(
+        "id"
+    )
+
+    table.insert(
+        (1, "Massine")
+    )
+
+    table.insert(
+        (2, "Alice")
+    )
+
+    assert table.lookup_by_index(
+        "id",
+        2,
+    ) == (
+        2,
+        "Alice",
+    )
+
+
+def test_reject_text_index():
+    table = Table(
+        users_schema()
+    )
+
+    with pytest.raises(
+        TypeError
+    ):
+        table.create_index(
+            "name"
+        )

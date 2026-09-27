@@ -1,31 +1,54 @@
 from pydb.parser.lexer import Lexer
 from pydb.parser.parser import Parser
 from pydb.query.executor import Database
-from pydb.storage.schema import Column, ColumnType, Schema
+from pydb.storage.schema import (
+    Column,
+    ColumnType,
+    Schema,
+)
 
 
 def parse(sql: str):
-    tokens = Lexer(sql).tokenize()
-    return Parser(tokens).parse()
+    tokens = Lexer(
+        sql
+    ).tokenize()
+
+    return Parser(
+        tokens
+    ).parse()
 
 
 def users_schema():
     return Schema(
         [
-            Column("id", ColumnType.INT),
-            Column("name", ColumnType.TEXT),
-            Column("age", ColumnType.INT),
+            Column(
+                "id",
+                ColumnType.INT,
+            ),
+            Column(
+                "name",
+                ColumnType.TEXT,
+            ),
+            Column(
+                "age",
+                ColumnType.INT,
+            ),
         ]
     )
 
 
 def test_insert_and_select():
     db = Database()
-    db.create_table("users", users_schema())
+
+    db.create_table(
+        "users",
+        users_schema(),
+    )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
@@ -42,17 +65,23 @@ def test_insert_and_select():
 
 def test_multiple_rows():
     db = Database()
-    db.create_table("users", users_schema())
+
+    db.create_table(
+        "users",
+        users_schema(),
+    )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 27);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 27);"
         )
     )
 
@@ -70,23 +99,30 @@ def test_multiple_rows():
 
 def test_select_with_where():
     db = Database()
-    db.create_table("users", users_schema())
+
+    db.create_table(
+        "users",
+        users_schema(),
+    )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 27);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 27);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT * FROM users WHERE id = 2;"
+            "SELECT * FROM users "
+            "WHERE id = 2;"
         )
     )
 
@@ -97,23 +133,30 @@ def test_select_with_where():
 
 def test_select_where_string():
     db = Database()
-    db.create_table("users", users_schema())
+
+    db.create_table(
+        "users",
+        users_schema(),
+    )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 27);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 27);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT * FROM users WHERE name = 'Massine';"
+            "SELECT * FROM users "
+            "WHERE name = 'Massine';"
         )
     )
 
@@ -157,7 +200,8 @@ def test_select_specific_columns():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
@@ -189,13 +233,15 @@ def test_select_single_column():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 27);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 27);"
         )
     )
 
@@ -228,19 +274,22 @@ def test_where_greater_than():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT * FROM users WHERE age > 24;"
+            "SELECT * FROM users "
+            "WHERE age > 24;"
         )
     )
 
@@ -266,19 +315,22 @@ def test_where_less_than():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT name FROM users WHERE age < 30;"
+            "SELECT name FROM users "
+            "WHERE age < 30;"
         )
     )
 
@@ -304,19 +356,22 @@ def test_where_greater_than_or_equal():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT name FROM users WHERE age >= 24;"
+            "SELECT name FROM users "
+            "WHERE age >= 24;"
         )
     )
 
@@ -343,19 +398,22 @@ def test_where_less_than_or_equal():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT name FROM users WHERE age <= 24;"
+            "SELECT name FROM users "
+            "WHERE age <= 24;"
         )
     )
 
@@ -381,19 +439,22 @@ def test_where_not_equal():
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
     rows = db.execute(
         parse(
-            "SELECT name FROM users WHERE age != 24;"
+            "SELECT name FROM users "
+            "WHERE age != 24;"
         )
     )
 
@@ -402,8 +463,13 @@ def test_where_not_equal():
     ]
 
 
-def test_database_persists_across_restart(tmp_path):
-    data_dir = tmp_path / "database"
+def test_database_persists_across_restart(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
 
     db = Database(
         str(data_dir)
@@ -423,7 +489,8 @@ def test_database_persists_across_restart(tmp_path):
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
@@ -442,8 +509,13 @@ def test_database_persists_across_restart(tmp_path):
     ]
 
 
-def test_database_restores_schema(tmp_path):
-    data_dir = tmp_path / "database"
+def test_database_restores_schema(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
 
     db = Database(
         str(data_dir)
@@ -465,15 +537,39 @@ def test_database_restores_schema(tmp_path):
         str(data_dir)
     )
 
-    table = reopened_db.tables["users"]
+    table = reopened_db.tables[
+        "users"
+    ]
 
-    assert table.schema.column_index("id") == 0
-    assert table.schema.column_index("name") == 1
-    assert table.schema.column_index("age") == 2
+    assert (
+        table.schema.column_index(
+            "id"
+        )
+        == 0
+    )
+
+    assert (
+        table.schema.column_index(
+            "name"
+        )
+        == 1
+    )
+
+    assert (
+        table.schema.column_index(
+            "age"
+        )
+        == 2
+    )
 
 
-def test_database_persists_multiple_rows(tmp_path):
-    data_dir = tmp_path / "database"
+def test_database_persists_multiple_rows(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
 
     db = Database(
         str(data_dir)
@@ -493,13 +589,15 @@ def test_database_persists_multiple_rows(tmp_path):
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
@@ -519,8 +617,13 @@ def test_database_persists_multiple_rows(tmp_path):
     ]
 
 
-def test_persistent_database_where_query(tmp_path):
-    data_dir = tmp_path / "database"
+def test_persistent_database_where_query(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
 
     db = Database(
         str(data_dir)
@@ -540,13 +643,15 @@ def test_persistent_database_where_query(tmp_path):
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (1, 'Massine', 24);"
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
         )
     )
 
     db.execute(
         parse(
-            "INSERT INTO users VALUES (2, 'Alice', 30);"
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
         )
     )
 
@@ -556,7 +661,137 @@ def test_persistent_database_where_query(tmp_path):
 
     rows = reopened_db.execute(
         parse(
-            "SELECT name FROM users WHERE age > 24;"
+            "SELECT name FROM users "
+            "WHERE age > 24;"
+        )
+    )
+
+    assert rows == [
+        ("Alice",)
+    ]
+
+
+def test_indexed_select():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
+        )
+    )
+
+    db.create_index(
+        "users",
+        "id",
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT * FROM users "
+            "WHERE id = 2;"
+        )
+    )
+
+    assert rows == [
+        (2, "Alice", 30)
+    ]
+
+
+def test_indexed_select_missing_value():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
+        )
+    )
+
+    db.create_index(
+        "users",
+        "id",
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT * FROM users "
+            "WHERE id = 999;"
+        )
+    )
+
+    assert rows == []
+
+
+def test_index_keeps_working_after_insert():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.create_index(
+        "users",
+        "id",
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT name FROM users "
+            "WHERE id = 2;"
         )
     )
 
