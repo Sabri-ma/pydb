@@ -21,11 +21,7 @@ def users_schema():
 
 def test_insert_and_select():
     db = Database()
-
-    db.create_table(
-        "users",
-        users_schema(),
-    )
+    db.create_table("users", users_schema())
 
     db.execute(
         parse(
@@ -46,11 +42,7 @@ def test_insert_and_select():
 
 def test_multiple_rows():
     db = Database()
-
-    db.create_table(
-        "users",
-        users_schema(),
-    )
+    db.create_table("users", users_schema())
 
     db.execute(
         parse(
@@ -78,11 +70,7 @@ def test_multiple_rows():
 
 def test_select_with_where():
     db = Database()
-
-    db.create_table(
-        "users",
-        users_schema(),
-    )
+    db.create_table("users", users_schema())
 
     db.execute(
         parse(
@@ -109,11 +97,7 @@ def test_select_with_where():
 
 def test_select_where_string():
     db = Database()
-
-    db.create_table(
-        "users",
-        users_schema(),
-    )
+    db.create_table("users", users_schema())
 
     db.execute(
         parse(
@@ -224,4 +208,195 @@ def test_select_single_column():
     assert rows == [
         ("Massine",),
         ("Alice",),
+    ]
+
+
+def test_where_greater_than():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT * FROM users WHERE age > 24;"
+        )
+    )
+
+    assert rows == [
+        (2, "Alice", 30)
+    ]
+
+
+def test_where_less_than():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT name FROM users WHERE age < 30;"
+        )
+    )
+
+    assert rows == [
+        ("Massine",)
+    ]
+
+
+def test_where_greater_than_or_equal():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT name FROM users WHERE age >= 24;"
+        )
+    )
+
+    assert rows == [
+        ("Massine",),
+        ("Alice",),
+    ]
+
+
+def test_where_less_than_or_equal():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT name FROM users WHERE age <= 24;"
+        )
+    )
+
+    assert rows == [
+        ("Massine",)
+    ]
+
+
+def test_where_not_equal():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES (2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT name FROM users WHERE age != 24;"
+        )
+    )
+
+    assert rows == [
+        ("Alice",)
     ]

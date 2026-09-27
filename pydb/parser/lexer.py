@@ -44,9 +44,35 @@ class Lexer:
                 tokens.append(self._read_string())
                 continue
 
-            if char in {"(", ")", ",", ";", "*", "=", "<", ">"}:
+            two_char_operator = self.source[
+                self.position:self.position + 2
+            ]
+
+            if two_char_operator in {">=", "<=", "!="}:
                 tokens.append(
-                    Token(TokenType.SYMBOL, char)
+                    Token(
+                        TokenType.SYMBOL,
+                        two_char_operator,
+                    )
+                )
+                self.position += 2
+                continue
+
+            if char in {
+                "(",
+                ")",
+                ",",
+                ";",
+                "*",
+                "=",
+                "<",
+                ">",
+            }:
+                tokens.append(
+                    Token(
+                        TokenType.SYMBOL,
+                        char,
+                    )
                 )
                 self.position += 1
                 continue
@@ -55,7 +81,12 @@ class Lexer:
                 f"Unexpected character: {char}"
             )
 
-        tokens.append(Token(TokenType.EOF, ""))
+        tokens.append(
+            Token(
+                TokenType.EOF,
+                "",
+            )
+        )
 
         return tokens
 
@@ -65,12 +96,17 @@ class Lexer:
         while self.position < len(self.source):
             char = self.source[self.position]
 
-            if not (char.isalnum() or char == "_"):
+            if not (
+                char.isalnum()
+                or char == "_"
+            ):
                 break
 
             self.position += 1
 
-        value = self.source[start:self.position]
+        value = self.source[
+            start:self.position
+        ]
 
         if value.upper() in KEYWORDS:
             return Token(
@@ -78,7 +114,10 @@ class Lexer:
                 value.upper(),
             )
 
-        return Token(TokenType.IDENTIFIER, value)
+        return Token(
+            TokenType.IDENTIFIER,
+            value,
+        )
 
     def _read_number(self) -> Token:
         start = self.position
@@ -91,7 +130,9 @@ class Lexer:
 
         return Token(
             TokenType.NUMBER,
-            self.source[start:self.position],
+            self.source[
+                start:self.position
+            ],
         )
 
     def _read_string(self) -> Token:
@@ -107,10 +148,17 @@ class Lexer:
             self.position += 1
 
         if self.position >= len(self.source):
-            raise ValueError("Unterminated string")
+            raise ValueError(
+                "Unterminated string"
+            )
 
-        value = self.source[start:self.position]
+        value = self.source[
+            start:self.position
+        ]
 
         self.position += 1
 
-        return Token(TokenType.STRING, value)
+        return Token(
+            TokenType.STRING,
+            value,
+        )

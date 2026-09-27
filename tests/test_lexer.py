@@ -20,7 +20,10 @@ def test_insert_statement():
         "INSERT INTO users VALUES (1, 'Massine');"
     ).tokenize()
 
-    values = [token.value for token in tokens]
+    values = [
+        token.value
+        for token in tokens
+    ]
 
     assert values == [
         "INSERT",
@@ -75,4 +78,26 @@ def test_string():
 
 def test_invalid_character():
     with pytest.raises(ValueError):
-        Lexer("SELECT @ FROM users").tokenize()
+        Lexer(
+            "SELECT @ FROM users"
+        ).tokenize()
+
+
+def test_comparison_operators():
+    tokens = Lexer(
+        "WHERE age >= 18"
+    ).tokenize()
+
+    assert tokens[2].value == ">="
+
+    tokens = Lexer(
+        "WHERE age <= 30"
+    ).tokenize()
+
+    assert tokens[2].value == "<="
+
+    tokens = Lexer(
+        "WHERE age != 24"
+    ).tokenize()
+
+    assert tokens[2].value == "!="
