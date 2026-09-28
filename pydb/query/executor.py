@@ -48,8 +48,11 @@ class Database:
             )
 
             self._load_tables()
+            self._load_indexes()
 
-    def _load_tables(self) -> None:
+    def _load_tables(
+        self,
+    ) -> None:
         if (
             self.catalog is None
             or self.data_dir is None
@@ -76,6 +79,46 @@ class Database:
                 str(table_file),
             )
 
+    def _load_indexes(
+        self,
+    ) -> None:
+        if self.catalog is None:
+            return
+
+        indexes = (
+            self.catalog.load_indexes()
+        )
+
+        for (
+            index_name,
+            index_data,
+        ) in indexes.items():
+            table_name = (
+                index_data["table"]
+            )
+
+            column_name = (
+                index_data["column"]
+            )
+
+            if table_name not in self.tables:
+                raise ValueError(
+                    f"Index {index_name} "
+                    f"references missing table "
+                    f"{table_name}"
+                )
+
+            table = self.tables[
+                table_name
+            ]
+
+            if not table.has_index(
+                column_name
+            ):
+                table.create_index(
+                    column_name
+                )
+
     def create_table(
         self,
         name: str,
@@ -93,6 +136,7 @@ class Database:
             ] = Table(
                 schema
             )
+
             return
 
         table_file = (
@@ -117,6 +161,7 @@ class Database:
         self,
         table_name: str,
         column_name: str,
+        index_name: str | None = None,
     ) -> None:
         if table_name not in self.tables:
             raise ValueError(
@@ -124,11 +169,35 @@ class Database:
                 f"{table_name}"
             )
 
-        self.tables[
+        if (
+            index_name is not None
+            and self.catalog is not None
+            and self.catalog.index_exists(
+                index_name
+            )
+        ):
+            raise ValueError(
+                f"Index already exists: "
+                f"{index_name}"
+            )
+
+        table = self.tables[
             table_name
-        ].create_index(
+        ]
+
+        table.create_index(
             column_name
         )
+
+        if (
+            index_name is not None
+            and self.catalog is not None
+        ):
+            self.catalog.save_index(
+                index_name,
+                table_name,
+                column_name,
+            )
 
     def execute(
         self,
@@ -225,6 +294,7 @@ class Database:
         self.create_index(
             statement.table,
             statement.column,
+            statement.name,
         )
 
     def _execute_insert(
@@ -270,9 +340,11 @@ class Database:
                 statement.where.column
             )
         ):
-            row = table.lookup_by_index(
-                statement.where.column,
-                statement.where.value,
+            row = (
+                table.lookup_by_index(
+                    statement.where.column,
+                    statement.where.value,
+                )
             )
 
             rows = (

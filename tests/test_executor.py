@@ -1,3 +1,5 @@
+import pytest
+
 from pydb.parser.lexer import Lexer
 from pydb.parser.parser import Parser
 from pydb.query.executor import Database
@@ -542,17 +544,23 @@ def test_database_restores_schema(
     ]
 
     assert (
-        table.schema.column_index("id")
+        table.schema.column_index(
+            "id"
+        )
         == 0
     )
 
     assert (
-        table.schema.column_index("name")
+        table.schema.column_index(
+            "name"
+        )
         == 1
     )
 
     assert (
-        table.schema.column_index("age")
+        table.schema.column_index(
+            "age"
+        )
         == 2
     )
 
@@ -875,3 +883,170 @@ def test_sql_created_index_is_used():
     assert rows == [
         ("Alice",)
     ]
+
+
+def test_index_persists_across_restart(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
+        )
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE INDEX idx_users_id
+            ON users(id);
+            """
+        )
+    )
+
+    reopened_db = Database(
+        str(data_dir)
+    )
+
+    assert (
+        reopened_db.tables[
+            "users"
+        ].has_index(
+            "id"
+        )
+    )
+
+    rows = reopened_db.execute(
+        parse(
+            "SELECT name FROM users "
+            "WHERE id = 2;"
+        )
+    )
+
+    assert rows == [
+        ("Alice",)
+    ]
+
+
+def test_catalog_restores_index_metadata(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE INDEX idx_users_id
+            ON users(id);
+            """
+        )
+    )
+
+    indexes = (
+        db.catalog.load_indexes()
+    )
+
+    assert (
+        "idx_users_id"
+        in indexes
+    )
+
+    assert indexes[
+        "idx_users_id"
+    ] == {
+        "table": "users",
+        "column": "id",
+    }
+
+
+def test_duplicate_index_name_rejected(
+    tmp_path,
+):
+    data_dir = (
+        tmp_path
+        / "database"
+    )
+
+    db = Database(
+        str(data_dir)
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE INDEX idx_users_id
+            ON users(id);
+            """
+        )
+    )
+
+    with pytest.raises(
+        ValueError
+    ):
+        db.execute(
+            parse(
+                """
+                CREATE INDEX idx_users_id
+                ON users(age);
+                """
+            )
+        )
