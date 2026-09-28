@@ -20,6 +20,7 @@ class InsertStatement:
     table: str
     values: list[int | str]
 
+
 @dataclass(frozen=True)
 class ColumnDefinition:
     name: str
@@ -30,3 +31,10 @@ class ColumnDefinition:
 class CreateTableStatement:
     table: str
     columns: list[ColumnDefinition]
+
+
+@dataclass(frozen=True)
+class CreateIndexStatement:
+    name: str
+    table: str
+    column: str

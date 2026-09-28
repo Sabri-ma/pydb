@@ -542,23 +542,17 @@ def test_database_restores_schema(
     ]
 
     assert (
-        table.schema.column_index(
-            "id"
-        )
+        table.schema.column_index("id")
         == 0
     )
 
     assert (
-        table.schema.column_index(
-            "name"
-        )
+        table.schema.column_index("name")
         == 1
     )
 
     assert (
-        table.schema.column_index(
-            "age"
-        )
+        table.schema.column_index("age")
         == 2
     )
 
@@ -785,6 +779,89 @@ def test_index_keeps_working_after_insert():
         parse(
             "INSERT INTO users VALUES "
             "(2, 'Alice', 30);"
+        )
+    )
+
+    rows = db.execute(
+        parse(
+            "SELECT name FROM users "
+            "WHERE id = 2;"
+        )
+    )
+
+    assert rows == [
+        ("Alice",)
+    ]
+
+
+def test_create_index_from_sql():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE INDEX idx_users_id
+            ON users(id);
+            """
+        )
+    )
+
+    assert (
+        db.tables[
+            "users"
+        ].has_index(
+            "id"
+        )
+    )
+
+
+def test_sql_created_index_is_used():
+    db = Database()
+
+    db.execute(
+        parse(
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(1, 'Massine', 24);"
+        )
+    )
+
+    db.execute(
+        parse(
+            "INSERT INTO users VALUES "
+            "(2, 'Alice', 30);"
+        )
+    )
+
+    db.execute(
+        parse(
+            """
+            CREATE INDEX idx_users_id
+            ON users(id);
+            """
         )
     )
 

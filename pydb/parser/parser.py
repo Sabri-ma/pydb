@@ -1,31 +1,47 @@
 from pydb.parser.ast import (
     ColumnDefinition,
     Condition,
+    CreateIndexStatement,
     CreateTableStatement,
     InsertStatement,
     SelectStatement,
 )
-from pydb.parser.tokens import Token, TokenType
+from pydb.parser.tokens import (
+    Token,
+    TokenType,
+)
 
 
 class Parser:
-    def __init__(self, tokens: list[Token]):
+    def __init__(
+        self,
+        tokens: list[Token],
+    ):
         self.tokens = tokens
         self.position = 0
 
     @property
     def current(self) -> Token:
-        return self.tokens[self.position]
+        return self.tokens[
+            self.position
+        ]
 
     def advance(self) -> Token:
         token = self.current
         self.position += 1
         return token
 
-    def expect(self, value: str) -> Token:
-        if self.current.value.upper() != value.upper():
+    def expect(
+        self,
+        value: str,
+    ) -> Token:
+        if (
+            self.current.value.upper()
+            != value.upper()
+        ):
             raise ValueError(
-                f"Expected {value}, got {self.current.value}"
+                f"Expected {value}, "
+                f"got {self.current.value}"
             )
 
         return self.advance()
@@ -38,13 +54,32 @@ class Parser:
             return self.parse_insert()
 
         if self.current.value == "CREATE":
-            return self.parse_create_table()
+            if (
+                self.position + 1
+                >= len(self.tokens)
+            ):
+                raise ValueError(
+                    "Incomplete CREATE statement"
+                )
+
+            next_token = self.tokens[
+                self.position + 1
+            ]
+
+            if next_token.value == "TABLE":
+                return self.parse_create_table()
+
+            if next_token.value == "INDEX":
+                return self.parse_create_index()
 
         raise ValueError(
-            f"Unsupported statement: {self.current.value}"
+            f"Unsupported statement: "
+            f"{self.current.value}"
         )
 
-    def parse_select(self) -> SelectStatement:
+    def parse_select(
+        self,
+    ) -> SelectStatement:
         self.expect("SELECT")
 
         columns = []
@@ -52,12 +87,18 @@ class Parser:
         if self.current.value == "*":
             columns.append("*")
             self.advance()
+
         else:
-            columns.append(self.advance().value)
+            columns.append(
+                self.advance().value
+            )
 
             while self.current.value == ",":
                 self.advance()
-                columns.append(self.advance().value)
+
+                columns.append(
+                    self.advance().value
+                )
 
         self.expect("FROM")
 
@@ -77,21 +118,33 @@ class Parser:
             where=where,
         )
 
-    def parse_where(self) -> Condition:
+    def parse_where(
+        self,
+    ) -> Condition:
         self.expect("WHERE")
 
         column = self.advance().value
         operator = self.advance().value
         value_token = self.advance()
 
-        if value_token.type == TokenType.NUMBER:
-            value = int(value_token.value)
+        if (
+            value_token.type
+            == TokenType.NUMBER
+        ):
+            value = int(
+                value_token.value
+            )
 
-        elif value_token.type == TokenType.STRING:
+        elif (
+            value_token.type
+            == TokenType.STRING
+        ):
             value = value_token.value
 
         else:
-            raise ValueError("Invalid WHERE value")
+            raise ValueError(
+                "Invalid WHERE value"
+            )
 
         return Condition(
             column=column,
@@ -99,7 +152,9 @@ class Parser:
             value=value,
         )
 
-    def parse_insert(self) -> InsertStatement:
+    def parse_insert(
+        self,
+    ) -> InsertStatement:
         self.expect("INSERT")
         self.expect("INTO")
 
@@ -113,15 +168,26 @@ class Parser:
         while self.current.value != ")":
             token = self.advance()
 
-            if token.type == TokenType.NUMBER:
-                values.append(int(token.value))
+            if (
+                token.type
+                == TokenType.NUMBER
+            ):
+                values.append(
+                    int(token.value)
+                )
 
-            elif token.type == TokenType.STRING:
-                values.append(token.value)
+            elif (
+                token.type
+                == TokenType.STRING
+            ):
+                values.append(
+                    token.value
+                )
 
             else:
                 raise ValueError(
-                    f"Invalid value: {token.value}"
+                    f"Invalid value: "
+                    f"{token.value}"
                 )
 
             if self.current.value == ",":
@@ -137,7 +203,9 @@ class Parser:
             values=values,
         )
 
-    def parse_create_table(self) -> CreateTableStatement:
+    def parse_create_table(
+        self,
+    ) -> CreateTableStatement:
         self.expect("CREATE")
         self.expect("TABLE")
 
@@ -148,12 +216,23 @@ class Parser:
         columns = []
 
         while self.current.value != ")":
-            column_name = self.advance().value
-            column_type = self.advance().value.upper()
+            column_name = (
+                self.advance().value
+            )
 
-            if column_type not in {"INT", "TEXT"}:
+            column_type = (
+                self.advance()
+                .value
+                .upper()
+            )
+
+            if column_type not in {
+                "INT",
+                "TEXT",
+            }:
                 raise ValueError(
-                    f"Unsupported column type: {column_type}"
+                    f"Unsupported column type: "
+                    f"{column_type}"
                 )
 
             columns.append(
@@ -174,4 +253,37 @@ class Parser:
         return CreateTableStatement(
             table=table,
             columns=columns,
+        )
+
+    def parse_create_index(
+        self,
+    ) -> CreateIndexStatement:
+        self.expect("CREATE")
+        self.expect("INDEX")
+
+        index_name = (
+            self.advance().value
+        )
+
+        self.expect("ON")
+
+        table = (
+            self.advance().value
+        )
+
+        self.expect("(")
+
+        column = (
+            self.advance().value
+        )
+
+        self.expect(")")
+
+        if self.current.value == ";":
+            self.advance()
+
+        return CreateIndexStatement(
+            name=index_name,
+            table=table,
+            column=column,
         )

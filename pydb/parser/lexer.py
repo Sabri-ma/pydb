@@ -10,6 +10,8 @@ KEYWORDS = {
     "VALUES",
     "CREATE",
     "TABLE",
+    "INDEX",
+    "ON",
     "UPDATE",
     "DELETE",
     "INT",
@@ -48,7 +50,11 @@ class Lexer:
                 self.position:self.position + 2
             ]
 
-            if two_char_operator in {">=", "<=", "!="}:
+            if two_char_operator in {
+                ">=",
+                "<=",
+                "!=",
+            }:
                 tokens.append(
                     Token(
                         TokenType.SYMBOL,
@@ -136,7 +142,10 @@ class Lexer:
         )
 
     def _read_string(self) -> Token:
-        quote = self.source[self.position]
+        quote = self.source[
+            self.position
+        ]
+
         self.position += 1
 
         start = self.position

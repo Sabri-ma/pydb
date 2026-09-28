@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pydb.parser.ast import (
+    CreateIndexStatement,
     CreateTableStatement,
     InsertStatement,
     SelectStatement,
@@ -19,7 +20,10 @@ class Database:
         self,
         data_dir: str | None = None,
     ):
-        self.tables: dict[str, Table] = {}
+        self.tables: dict[
+            str,
+            Table,
+        ] = {}
 
         self.data_dir: Path | None = None
         self.catalog: Catalog | None = None
@@ -52,7 +56,9 @@ class Database:
         ):
             return
 
-        schemas = self.catalog.load()
+        schemas = (
+            self.catalog.load()
+        )
 
         for (
             table_name,
@@ -77,7 +83,8 @@ class Database:
     ) -> None:
         if name in self.tables:
             raise ValueError(
-                f"Table already exists: {name}"
+                f"Table already exists: "
+                f"{name}"
             )
 
         if self.data_dir is None:
@@ -123,13 +130,26 @@ class Database:
             column_name
         )
 
-    def execute(self, statement):
+    def execute(
+        self,
+        statement,
+    ):
         if isinstance(
             statement,
             CreateTableStatement,
         ):
             return (
                 self._execute_create_table(
+                    statement
+                )
+            )
+
+        if isinstance(
+            statement,
+            CreateIndexStatement,
+        ):
+            return (
+                self._execute_create_index(
                     statement
                 )
             )
@@ -198,6 +218,15 @@ class Database:
             schema,
         )
 
+    def _execute_create_index(
+        self,
+        statement: CreateIndexStatement,
+    ):
+        self.create_index(
+            statement.table,
+            statement.column,
+        )
+
     def _execute_insert(
         self,
         statement: InsertStatement,
@@ -232,8 +261,6 @@ class Database:
             statement.table
         ]
 
-        rows = None
-
         if (
             statement.where is not None
             and
@@ -248,10 +275,11 @@ class Database:
                 statement.where.value,
             )
 
-            if row is None:
-                rows = []
-            else:
-                rows = [row]
+            rows = (
+                []
+                if row is None
+                else [row]
+            )
 
         else:
             rows = list(

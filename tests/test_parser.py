@@ -1,15 +1,23 @@
 from pydb.parser.ast import (
+    ColumnDefinition,
     Condition,
+    CreateIndexStatement,
+    CreateTableStatement,
     InsertStatement,
     SelectStatement,
 )
 from pydb.parser.lexer import Lexer
 from pydb.parser.parser import Parser
-from pydb.parser.ast import ColumnDefinition, CreateTableStatement
+
 
 def parse(sql: str):
-    tokens = Lexer(sql).tokenize()
-    return Parser(tokens).parse()
+    tokens = Lexer(
+        sql
+    ).tokenize()
+
+    return Parser(
+        tokens
+    ).parse()
 
 
 def test_select_all():
@@ -38,7 +46,8 @@ def test_select_specific_columns():
 
 def test_select_with_where_number():
     statement = parse(
-        "SELECT * FROM users WHERE id = 1;"
+        "SELECT * FROM users "
+        "WHERE id = 1;"
     )
 
     assert statement == SelectStatement(
@@ -54,7 +63,8 @@ def test_select_with_where_number():
 
 def test_select_with_where_string():
     statement = parse(
-        "SELECT * FROM users WHERE name = 'Massine';"
+        "SELECT * FROM users "
+        "WHERE name = 'Massine';"
     )
 
     assert statement.where == Condition(
@@ -66,13 +76,19 @@ def test_select_with_where_string():
 
 def test_insert():
     statement = parse(
-        "INSERT INTO users VALUES (1, 'Massine', 24);"
+        "INSERT INTO users VALUES "
+        "(1, 'Massine', 24);"
     )
 
     assert statement == InsertStatement(
         table="users",
-        values=[1, "Massine", 24],
+        values=[
+            1,
+            "Massine",
+            24,
+        ],
     )
+
 
 def test_create_table():
     statement = parse(
@@ -88,8 +104,32 @@ def test_create_table():
     assert statement == CreateTableStatement(
         table="users",
         columns=[
-            ColumnDefinition("id", "INT"),
-            ColumnDefinition("name", "TEXT"),
-            ColumnDefinition("age", "INT"),
+            ColumnDefinition(
+                "id",
+                "INT",
+            ),
+            ColumnDefinition(
+                "name",
+                "TEXT",
+            ),
+            ColumnDefinition(
+                "age",
+                "INT",
+            ),
         ],
+    )
+
+
+def test_create_index():
+    statement = parse(
+        """
+        CREATE INDEX idx_users_id
+        ON users(id);
+        """
+    )
+
+    assert statement == CreateIndexStatement(
+        name="idx_users_id",
+        table="users",
+        column="id",
     )
