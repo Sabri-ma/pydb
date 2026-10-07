@@ -12,6 +12,7 @@ KEYWORDS = {
     "TABLE",
     "INDEX",
     "ON",
+    "EXPLAIN",
     "UPDATE",
     "DELETE",
     "INT",
@@ -147,7 +148,6 @@ class Lexer:
         ]
 
         self.position += 1
-
         start = self.position
 
         while (

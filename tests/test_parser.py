@@ -3,6 +3,7 @@ from pydb.parser.ast import (
     Condition,
     CreateIndexStatement,
     CreateTableStatement,
+    ExplainStatement,
     InsertStatement,
     SelectStatement,
 )
@@ -11,13 +12,8 @@ from pydb.parser.parser import Parser
 
 
 def parse(sql: str):
-    tokens = Lexer(
-        sql
-    ).tokenize()
-
-    return Parser(
-        tokens
-    ).parse()
+    tokens = Lexer(sql).tokenize()
+    return Parser(tokens).parse()
 
 
 def test_select_all():
@@ -46,8 +42,7 @@ def test_select_specific_columns():
 
 def test_select_with_where_number():
     statement = parse(
-        "SELECT * FROM users "
-        "WHERE id = 1;"
+        "SELECT * FROM users WHERE id = 1;"
     )
 
     assert statement == SelectStatement(
@@ -132,4 +127,43 @@ def test_create_index():
         name="idx_users_id",
         table="users",
         column="id",
+    )
+
+
+def test_explain_select():
+    statement = parse(
+        """
+        EXPLAIN
+        SELECT * FROM users
+        WHERE id = 2;
+        """
+    )
+
+    assert statement == ExplainStatement(
+        statement=SelectStatement(
+            columns=["*"],
+            table="users",
+            where=Condition(
+                column="id",
+                operator="=",
+                value=2,
+            ),
+        )
+    )
+
+
+def test_explain_select_without_where():
+    statement = parse(
+        """
+        EXPLAIN
+        SELECT * FROM users;
+        """
+    )
+
+    assert statement == ExplainStatement(
+        statement=SelectStatement(
+            columns=["*"],
+            table="users",
+            where=None,
+        )
     )

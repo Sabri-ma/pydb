@@ -3,6 +3,7 @@ from pydb.parser.ast import (
     Condition,
     CreateIndexStatement,
     CreateTableStatement,
+    ExplainStatement,
     InsertStatement,
     SelectStatement,
 )
@@ -52,6 +53,9 @@ class Parser:
 
         if self.current.value == "INSERT":
             return self.parse_insert()
+
+        if self.current.value == "EXPLAIN":
+            return self.parse_explain()
 
         if self.current.value == "CREATE":
             if (
@@ -127,18 +131,12 @@ class Parser:
         operator = self.advance().value
         value_token = self.advance()
 
-        if (
-            value_token.type
-            == TokenType.NUMBER
-        ):
+        if value_token.type == TokenType.NUMBER:
             value = int(
                 value_token.value
             )
 
-        elif (
-            value_token.type
-            == TokenType.STRING
-        ):
+        elif value_token.type == TokenType.STRING:
             value = value_token.value
 
         else:
@@ -168,18 +166,12 @@ class Parser:
         while self.current.value != ")":
             token = self.advance()
 
-            if (
-                token.type
-                == TokenType.NUMBER
-            ):
+            if token.type == TokenType.NUMBER:
                 values.append(
                     int(token.value)
                 )
 
-            elif (
-                token.type
-                == TokenType.STRING
-            ):
+            elif token.type == TokenType.STRING:
                 values.append(
                     token.value
                 )
@@ -286,4 +278,21 @@ class Parser:
             name=index_name,
             table=table,
             column=column,
+        )
+
+    def parse_explain(
+        self,
+    ) -> ExplainStatement:
+        self.expect("EXPLAIN")
+
+        if self.current.value != "SELECT":
+            raise ValueError(
+                "EXPLAIN currently supports "
+                "SELECT only"
+            )
+
+        statement = self.parse_select()
+
+        return ExplainStatement(
+            statement=statement
         )

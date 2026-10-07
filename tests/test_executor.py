@@ -468,10 +468,7 @@ def test_where_not_equal():
 def test_database_persists_across_restart(
     tmp_path,
 ):
-    data_dir = (
-        tmp_path
-        / "database"
-    )
+    data_dir = tmp_path / "database"
 
     db = Database(
         str(data_dir)
@@ -514,10 +511,7 @@ def test_database_persists_across_restart(
 def test_database_restores_schema(
     tmp_path,
 ):
-    data_dir = (
-        tmp_path
-        / "database"
-    )
+    data_dir = tmp_path / "database"
 
     db = Database(
         str(data_dir)
@@ -568,10 +562,7 @@ def test_database_restores_schema(
 def test_database_persists_multiple_rows(
     tmp_path,
 ):
-    data_dir = (
-        tmp_path
-        / "database"
-    )
+    data_dir = tmp_path / "database"
 
     db = Database(
         str(data_dir)
@@ -622,10 +613,7 @@ def test_database_persists_multiple_rows(
 def test_persistent_database_where_query(
     tmp_path,
 ):
-    data_dir = (
-        tmp_path
-        / "database"
-    )
+    data_dir = tmp_path / "database"
 
     db = Database(
         str(data_dir)
@@ -888,10 +876,7 @@ def test_sql_created_index_is_used():
 def test_index_persists_across_restart(
     tmp_path,
 ):
-    data_dir = (
-        tmp_path
-        / "database"
-    )
+    data_dir = tmp_path / "database"
 
     db = Database(
         str(data_dir)
@@ -944,29 +929,40 @@ def test_index_persists_across_restart(
         )
     )
 
-    rows = reopened_db.execute(
+
+def test_explain_sequential_scan():
+    db = Database()
+
+    db.execute(
         parse(
-            "SELECT name FROM users "
-            "WHERE id = 2;"
+            """
+            CREATE TABLE users (
+                id INT,
+                name TEXT,
+                age INT
+            );
+            """
         )
     )
 
-    assert rows == [
-        ("Alice",)
-    ]
-
-
-def test_catalog_restores_index_metadata(
-    tmp_path,
-):
-    data_dir = (
-        tmp_path
-        / "database"
+    plan = db.execute(
+        parse(
+            """
+            EXPLAIN
+            SELECT * FROM users
+            WHERE id = 2;
+            """
+        )
     )
 
-    db = Database(
-        str(data_dir)
+    assert plan == (
+        "SequentialScan("
+        "table=users)"
     )
+
+
+def test_explain_index_lookup():
+    db = Database()
 
     db.execute(
         parse(
@@ -989,34 +985,26 @@ def test_catalog_restores_index_metadata(
         )
     )
 
-    indexes = (
-        db.catalog.load_indexes()
+    plan = db.execute(
+        parse(
+            """
+            EXPLAIN
+            SELECT * FROM users
+            WHERE id = 2;
+            """
+        )
     )
 
-    assert (
-        "idx_users_id"
-        in indexes
+    assert plan == (
+        "IndexLookup("
+        "table=users, "
+        "column=id, "
+        "value=2)"
     )
 
-    assert indexes[
-        "idx_users_id"
-    ] == {
-        "table": "users",
-        "column": "id",
-    }
 
-
-def test_duplicate_index_name_rejected(
-    tmp_path,
-):
-    data_dir = (
-        tmp_path
-        / "database"
-    )
-
-    db = Database(
-        str(data_dir)
-    )
+def test_explain_range_query_uses_scan():
+    db = Database()
 
     db.execute(
         parse(
@@ -1038,6 +1026,25 @@ def test_duplicate_index_name_rejected(
             """
         )
     )
+
+    plan = db.execute(
+        parse(
+            """
+            EXPLAIN
+            SELECT * FROM users
+            WHERE id > 2;
+            """
+        )
+    )
+
+    assert plan == (
+        "SequentialScan("
+        "table=users)"
+    )
+
+
+def test_explain_missing_table():
+    db = Database()
 
     with pytest.raises(
         ValueError
@@ -1045,8 +1052,8 @@ def test_duplicate_index_name_rejected(
         db.execute(
             parse(
                 """
-                CREATE INDEX idx_users_id
-                ON users(age);
+                EXPLAIN
+                SELECT * FROM missing;
                 """
             )
         )

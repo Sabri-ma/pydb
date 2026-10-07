@@ -38,3 +38,8 @@ class CreateIndexStatement:
     name: str
     table: str
     column: str
+
+
+@dataclass(frozen=True)
+class ExplainStatement:
+    statement: SelectStatement

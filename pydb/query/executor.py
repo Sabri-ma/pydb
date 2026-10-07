@@ -3,8 +3,13 @@ from pathlib import Path
 from pydb.parser.ast import (
     CreateIndexStatement,
     CreateTableStatement,
+    ExplainStatement,
     InsertStatement,
     SelectStatement,
+)
+from pydb.query.planner import (
+    IndexLookupPlan,
+    QueryPlanner,
 )
 from pydb.storage.catalog import Catalog
 from pydb.storage.schema import (
@@ -27,6 +32,8 @@ class Database:
 
         self.data_dir: Path | None = None
         self.catalog: Catalog | None = None
+
+        self.planner = QueryPlanner()
 
         if data_dir is not None:
             self.data_dir = Path(
@@ -136,7 +143,6 @@ class Database:
             ] = Table(
                 schema
             )
-
             return
 
         table_file = (
@@ -207,40 +213,40 @@ class Database:
             statement,
             CreateTableStatement,
         ):
-            return (
-                self._execute_create_table(
-                    statement
-                )
+            return self._execute_create_table(
+                statement
             )
 
         if isinstance(
             statement,
             CreateIndexStatement,
         ):
-            return (
-                self._execute_create_index(
-                    statement
-                )
+            return self._execute_create_index(
+                statement
             )
 
         if isinstance(
             statement,
             InsertStatement,
         ):
-            return (
-                self._execute_insert(
-                    statement
-                )
+            return self._execute_insert(
+                statement
             )
 
         if isinstance(
             statement,
             SelectStatement,
         ):
-            return (
-                self._execute_select(
-                    statement
-                )
+            return self._execute_select(
+                statement
+            )
+
+        if isinstance(
+            statement,
+            ExplainStatement,
+        ):
+            return self._execute_explain(
+                statement
             )
 
         raise ValueError(
@@ -317,6 +323,29 @@ class Database:
             )
         )
 
+    def _execute_explain(
+        self,
+        statement: ExplainStatement,
+    ) -> str:
+        select = statement.statement
+
+        if select.table not in self.tables:
+            raise ValueError(
+                f"Table does not exist: "
+                f"{select.table}"
+            )
+
+        table = self.tables[
+            select.table
+        ]
+
+        plan = self.planner.plan(
+            select,
+            table,
+        )
+
+        return str(plan)
+
     def _execute_select(
         self,
         statement: SelectStatement,
@@ -331,20 +360,18 @@ class Database:
             statement.table
         ]
 
-        if (
-            statement.where is not None
-            and
-            statement.where.operator == "="
-            and
-            table.has_index(
-                statement.where.column
-            )
+        plan = self.planner.plan(
+            statement,
+            table,
+        )
+
+        if isinstance(
+            plan,
+            IndexLookupPlan,
         ):
-            row = (
-                table.lookup_by_index(
-                    statement.where.column,
-                    statement.where.value,
-                )
+            row = table.lookup_by_index(
+                plan.column,
+                plan.value,
             )
 
             rows = (
